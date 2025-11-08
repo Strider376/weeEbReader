@@ -4,11 +4,13 @@ import sys
 from pathlib import Path
 from PIL import Image
 from gpiozero import Button
+import time
 
-
-forward_button = Button(27)
-back_button = Button(17)
-
+try:
+    forward_button = Button(27)
+    back_button = Button(17)
+except:
+    pass
 
 pygame.init()
 
@@ -18,6 +20,7 @@ screen_height = int(1872 * dev_scale)
 screen_width = int(1404 * dev_scale)
 
 MTV1 = ("Mushoku Tensei - Jobless Reincarnation Volume-1.pdf")
+
 BG_COLOR = (255,255,255)
 
 screen = pygame.display.set_mode((screen_width, screen_height))
@@ -33,6 +36,19 @@ needs_redraw = True
 
 doc = fitz.open(MTV1)
 
+def show_splash_screen():
+    LOGO_path = ("weeEbReaderLogo.png")
+    screen.fill(BG_COLOR)
+    LOGO = pygame.image.load(LOGO_path)
+    width = LOGO.get_width()
+    height = LOGO.get_height
+    x = (screen_width- width) // 2
+    y = 0
+    screen.blit(LOGO, (x,y))
+    pygame.display.update()
+    time.sleep(3) 
+
+show_splash_screen()
 
 def display_pdf_page(pdf_file, page_num=0):
     screen.fill(BG_COLOR)
@@ -73,8 +89,14 @@ def page_back():
     needs_redraw = True
     print(f"Back to page {page}")
 
-forward_button.when_activated = page_forward
-back_button.when_activated = page_back
+try:
+    forward_button.when_activated = page_forward
+    back_button.when_activated = page_back
+except:
+    pass
+
+
+
 
 while running:
     
