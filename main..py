@@ -3,6 +3,12 @@ import fitz
 import sys
 from pathlib import Path
 from PIL import Image
+from gpiozero import Button
+
+
+forward_button = Button(27)
+back_button = Button(17)
+
 
 pygame.init()
 
@@ -55,12 +61,24 @@ def display_pdf_page(pdf_file, page_num=0):
         pygame.display.update()
        
 
+def page_forward():
+    global page, needs_redraw
+    page = min(page + 1, doc.page_count -1)
+    needs_redraw = True
+    print(f"Forward to Page {page}")
 
+def page_back():
+    global page, needs_redraw
+    page = max(page - 1, 0)
+    needs_redraw = True
+    print(f"Back to page {page}")
 
+forward_button.when_activated = page_forward
+back_button.when_activated = page_back
 
 while running:
     
-
+    
    
     
     for event in pygame.event.get():
@@ -68,11 +86,9 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_UP:
-                page = min(page + 1, doc.page_count -1)
-                needs_redraw = True
+                page_forward()
             if event.key == pygame.K_DOWN:
-                page = max(page - 1, 0)
-                needs_redraw = True
+                page_back()
             if event.key == pygame.K_SPACE:
                 running = False
                 
