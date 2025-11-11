@@ -2,9 +2,11 @@ import pygame
 import fitz
 import sys
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw
 from gpiozero import Button
 import time
+
+
 
 try:
     forward_button = Button(27)
@@ -14,15 +16,23 @@ except:
 
 pygame.init()
 
+current_mode = "menu"
+menu_redraw = True
+
+
 dev_scale = .5
 running = True
 screen_height = int(1872 * dev_scale)
 screen_width = int(1404 * dev_scale)
 
 MTV1 = ("Mushoku Tensei - Jobless Reincarnation Volume-1.pdf")
+MTV2 = ("Mushoku Tensei - Jobless Reincarnation Volume-2.pdf")
+MTV3 = ("Mushoku Tensei - Jobless Reincarnation Volume-3.pdf")
+
 
 BG_COLOR = (255,255,255)
 
+img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
 
@@ -34,7 +44,7 @@ running = True
 needs_redraw = True
 
 
-doc = fitz.open(MTV1)
+
 
 def show_splash_screen():
     LOGO_path = ("weeEbReaderLogo.png")
@@ -50,7 +60,24 @@ def show_splash_screen():
 
 show_splash_screen()
 
+
+
+def draw_menu():
+    img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
+    draw = ImageDraw.Draw(img)
+    draw.rectangle([(50, 200), (650, 300)], fill='red', outline='black', width=3)
+    draw.rectangle([(50, 350), (650, 450)], fill='blue', outline='black', width=3)
+    draw.rectangle([(50, 500), (650, 600)], fill='green', outline='black', width=3)
+    pixel_data = img.tobytes()
+    surface = pygame.image.fromstring(pixel_data, img.size, img.mode)
+
+    screen.blit(surface, (0,0))
+    pygame.display.update()
+
+
+doc = fitz.open(MTV2)
 def display_pdf_page(pdf_file, page_num=0):
+    
     screen.fill(BG_COLOR)
    
     
@@ -100,9 +127,6 @@ except:
 
 while running:
     
-    
-   
-    
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -113,11 +137,22 @@ while running:
                 page_back()
             if event.key == pygame.K_SPACE:
                 running = False
-                
-    if needs_redraw == True:
-        display_pdf_page(MTV1, page)
+
+    if current_mode == "menu":
+        draw_menu()
+        menu_redraw = False
+
+    elif current_mode == "reading" and needs_redraw:
+        display_pdf_page(MTV2, page)
         needs_redraw = False
-    clock.tick(15)
+
+    clock.tick(30)
+   
+       
+
+
+    
+    clock.tick(30)
 
 
 pygame.quit()
