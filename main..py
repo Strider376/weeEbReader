@@ -19,27 +19,41 @@ pygame.init()
 current_mode = "menu"
 menu_redraw = True
 
+selected_novel = 0
+doc = None
 
 dev_scale = .5
 running = True
 screen_height = int(1872 * dev_scale)
 screen_width = int(1404 * dev_scale)
 
-MTV1 = ("Mushoku Tensei - Jobless Reincarnation Volume-1.pdf")
-MTV2 = ("Mushoku Tensei - Jobless Reincarnation Volume-2.pdf")
-MTV3 = ("Mushoku Tensei - Jobless Reincarnation Volume-3.pdf")
+
+class LIGHT_NOVEL:
+    def __init__(self, file_name: str, display_name: str, current_page: int):
+        self.file_name = file_name
+        self.display_name = display_name
+        self.current_page = current_page
+
+
+MTV1 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-1.pdf", "Mushoku Tensei Volume 1", 0)
+MTV2 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-2.pdf", "Mushoku Tensei Volume 2", 0)
+MTV3 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-3.pdf", "Mushoku Tensei Volume 3", 0)
+
+light_novel_list = [MTV1, MTV2, MTV3]
 
 
 BG_COLOR = (255,255,255)
+
+
+
 
 img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
 screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
 
-pygame.display.set_caption(MTV1)
 screen.fill(BG_COLOR)
 
-page = 0
+
 running = True
 needs_redraw = True
 
@@ -56,7 +70,7 @@ def show_splash_screen():
     y = 0
     screen.blit(LOGO, (x,y))
     pygame.display.update()
-    time.sleep(3) 
+    time.sleep(1.5)
 
 show_splash_screen()
 
@@ -65,9 +79,19 @@ show_splash_screen()
 def draw_menu():
     img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
     draw = ImageDraw.Draw(img)
-    draw.rectangle([(50, 200), (650, 300)], fill='red', outline='black', width=3)
-    draw.rectangle([(50, 350), (650, 450)], fill='blue', outline='black', width=3)
-    draw.rectangle([(50, 500), (650, 600)], fill='green', outline='black', width=3)
+   
+
+    y_pos = 200
+    for i, book in enumerate(light_novel_list):
+
+        if i == selected_novel:
+            fill = (100,100,255)
+        else:
+            fill = (255,255,255)
+
+        draw.rectangle([(50, y_pos), (650, y_pos+100)], fill=fill,outline="black", width=3)
+        y_pos += 150
+
     pixel_data = img.tobytes()
     surface = pygame.image.fromstring(pixel_data, img.size, img.mode)
 
@@ -75,14 +99,17 @@ def draw_menu():
     pygame.display.update()
 
 
-doc = fitz.open(MTV2)
-def display_pdf_page(pdf_file, page_num=0):
+
+def display_pdf_page():
     
+
     screen.fill(BG_COLOR)
-   
+    
+    current_book = light_novel_list[selected_novel]
+    page_num = current_book.current_page  
     
     if 0 <= page_num < doc.page_count:
-        page = doc[page_num]
+        page = doc[page_num]  
         pix = page.get_pixmap()
 
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
@@ -105,16 +132,41 @@ def display_pdf_page(pdf_file, page_num=0):
        
 
 def page_forward():
-    global page, needs_redraw
-    page = min(page + 1, doc.page_count -1)
+    global needs_redraw
+    current_book = light_novel_list[selected_novel]
+    current_book.current_page = min(current_book.current_page + 1, doc.page_count -1)
     needs_redraw = True
-    print(f"Forward to Page {page}")
+    print(f"Forward to Page {current_book.current_page}")
 
 def page_back():
-    global page, needs_redraw
-    page = max(page - 1, 0)
+    global needs_redraw
+    current_book = light_novel_list[selected_novel]
+    current_book.current_page = max(current_book.current_page - 1, 0) 
     needs_redraw = True
-    print(f"Back to page {page}")
+    print(f"Back to page {current_book.current_page}")
+
+
+def select_book():
+    global doc, current_mode, needs_redraw
+    book = light_novel_list[selected_novel]
+    filename = book.file_name
+    doc = fitz.open(filename)
+    current_mode = "reading"
+    display_pdf_page()
+    needs_redraw = True
+
+def menu_up():
+    global menu_redraw, selected_novel
+    selected_novel = min(selected_novel - 1, len(light_novel_list) - 1)
+    menu_redraw = True
+    
+
+def menu_down():
+    global menu_redraw, selected_novel
+    selected_novel = max(selected_novel + 1, 0)
+    menu_redraw = True
+    
+
 
 try:
     forward_button.when_activated = page_forward
@@ -130,20 +182,30 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN:
+        if event.type == pygame.KEYDOWN and current_mode == "reading":
             if event.key == pygame.K_UP:
                 page_forward()
             if event.key == pygame.K_DOWN:
                 page_back()
             if event.key == pygame.K_SPACE:
                 running = False
-
-    if current_mode == "menu":
+            if event.key == pygame.K_ESCAPE:
+                current_mode = "menu"
+                menu_redraw = True
+        if event.type == pygame.KEYDOWN and current_mode == "menu":
+            if event.key == pygame.K_RETURN:
+                select_book()
+            if event.key == pygame.K_UP:
+                menu_up()
+            if event.key == pygame.K_DOWN:
+                menu_down()
+                
+    if current_mode == "menu" and menu_redraw:
         draw_menu()
         menu_redraw = False
 
     elif current_mode == "reading" and needs_redraw:
-        display_pdf_page(MTV2, page)
+        display_pdf_page()
         needs_redraw = False
 
     clock.tick(30)
@@ -151,13 +213,11 @@ while running:
        
 
 
-    
-    clock.tick(30)
+ 
 
 
 pygame.quit()
                 
-
 
 
 
