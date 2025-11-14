@@ -14,6 +14,7 @@ try:
     select_button = Button(22)
     up_button = Button(23)
     down_button = Button(24)
+    menu_button = Button(25)
 except:
     pass
 
@@ -166,7 +167,6 @@ def select_book():
     filename = book.file_name
     doc = fitz.open(filename)
     current_mode = "reading"
-    display_pdf_page()
     needs_redraw = True
 
 def menu_up():
@@ -182,13 +182,15 @@ def menu_down():
     
 
 
+
 try:
     forward_button.when_activated = page_forward
     back_button.when_activated = page_back
     up_button.when_activated = menu_up
     down_button.when_activated = menu_down
     select_button.when_activated = select_book
-    print("All Bttons Configured")
+    menu_button.when_activated = to_menu
+    print("All Buttons Configured")
 except Exception as e:
     print(f"Error: Button setup failed {e}")
 
