@@ -185,11 +185,12 @@ def menu_down():
 try:
     forward_button.when_activated = page_forward
     back_button.when_activated = page_back
-    up_button = menu_up
-    down_button = menu_down
-    select_button = select_book
-except:
-    pass
+    up_button.when_activated = menu_up
+    down_button.when_activated = menu_down
+    select_button.when_activated = select_book
+    print("All Bttons Configured")
+except Exception as e:
+    print(f"Error: Button setup failed {e}")
 
 
 
