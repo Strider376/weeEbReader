@@ -2,7 +2,7 @@ import pygame
 import fitz
 import sys
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from gpiozero import Button
 import time
 
@@ -11,6 +11,9 @@ import time
 try:
     forward_button = Button(27)
     back_button = Button(17)
+    select_button = Button(22)
+    up_button = Button(23)
+    down_button = Button(24)
 except:
     pass
 
@@ -80,8 +83,13 @@ def draw_menu():
     img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
     draw = ImageDraw.Draw(img)
    
+    try:
+        book_title_font = ImageFont.truetype("DejaVu Sans", size=35)
+    except:
+        book_title_font = ImageFont.truetype("C:/Windows/Fonts/framd", size=35) 
 
     y_pos = 200
+    x_pos = 275
     for i, book in enumerate(light_novel_list):
 
         if i == selected_novel:
@@ -90,6 +98,8 @@ def draw_menu():
             fill = (255,255,255)
 
         draw.rectangle([(50, y_pos), (650, y_pos+100)], fill=fill,outline="black", width=3)
+        current_book = (book.display_name)
+        draw.text((x_pos-120,y_pos+30), current_book, fill = "Black", font=book_title_font)
         y_pos += 150
 
     pixel_data = img.tobytes()
@@ -130,6 +140,10 @@ def display_pdf_page():
         screen.blit(surface, (x,y))
         pygame.display.update()
        
+def to_menu():
+    global menu_redraw, current_mode
+    current_mode = "menu"
+    menu_redraw = True
 
 def page_forward():
     global needs_redraw
@@ -157,13 +171,13 @@ def select_book():
 
 def menu_up():
     global menu_redraw, selected_novel
-    selected_novel = min(selected_novel - 1, len(light_novel_list) - 1)
+    selected_novel = max(selected_novel - 1, 0)
     menu_redraw = True
     
 
 def menu_down():
     global menu_redraw, selected_novel
-    selected_novel = max(selected_novel + 1, 0)
+    selected_novel = min(selected_novel + 1, len(light_novel_list) - 1)
     menu_redraw = True
     
 
@@ -171,6 +185,9 @@ def menu_down():
 try:
     forward_button.when_activated = page_forward
     back_button.when_activated = page_back
+    up_button = menu_up
+    down_button = menu_down
+    select_button = select_book
 except:
     pass
 
@@ -187,12 +204,11 @@ while running:
                 page_forward()
             if event.key == pygame.K_DOWN:
                 page_back()
+            if event.key == pygame.K_ESCAPE:
+                to_menu()
+        if event.type == pygame.KEYDOWN and current_mode == "menu":
             if event.key == pygame.K_SPACE:
                 running = False
-            if event.key == pygame.K_ESCAPE:
-                current_mode = "menu"
-                menu_redraw = True
-        if event.type == pygame.KEYDOWN and current_mode == "menu":
             if event.key == pygame.K_RETURN:
                 select_book()
             if event.key == pygame.K_UP:
