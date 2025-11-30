@@ -1,15 +1,10 @@
+import pygame
 import fitz
+import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from gpiozero import Button
 import time
-
-from IT8951 import constants
-from IT8951.display import AutoEPDDISPLAY
-
-VCOM = -1.40
-
-display = AutoEPDDISPLAY(vcom=VCOM)
 
 
 
@@ -19,21 +14,23 @@ try:
     select_button = Button(22)
     up_button = Button(23)
     down_button = Button(24)
+    menu_button = Button(25)
 except:
     pass
- 
+
+pygame.init()
 
 current_mode = "menu"
 menu_redraw = True
 
 selected_novel = 0
 doc = None
-running = True
-screen_height = 1872
-screen_width = 1404
-needs_redraw = True
 
-display.clear()
+dev_scale = .5
+running = True
+screen_height = int(1872 * dev_scale)
+screen_width = int(1404 * dev_scale)
+
 
 class LIGHT_NOVEL:
     def __init__(self, file_name: str, display_name: str, current_page: int):
@@ -49,42 +46,37 @@ MTV3 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-3.pdf", "Musho
 light_novel_list = [MTV1, MTV2, MTV3]
 
 
-BG_COLOR = 255
+BG_COLOR = (255,255,255)
 
 
 
 
+img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
+screen = pygame.display.set_mode((screen_width, screen_height))
+clock = pygame.time.Clock()
+
+screen.fill(BG_COLOR)
 
 
-
-
-def update_eink(image, full_refresh=False):
-    if image.mode != 'L':
-        image = image.convert('L')
-
-    if image.size != (screen_width, screen_height):
-        image = image.resize((screen_width,screen_height), Image.LANCZOS)
-
-    display.frame_buf.paste(image, [0,0])
-
-    if full_refresh:
-        display.draw_full(constants.DisplayModes.GC16)
-    else:
-        display.draw_partial(constants.DisplayModes.DU)
+running = True
+needs_redraw = True
 
 
 
 
 def show_splash_screen():
-    img = Image.new("L", (screen_width, screen_height), BG_COLOR)
-
-    logo = Image.open("weeEbReaderLogo.png").convert("L")
-    x = (screen_width - logo.width) // 2
-    y = (screen_height - logo.height) // 4
-    img.paste()
-    show_splash_screen(logo, (x , y))
-    update_eink(img, full_refresh=True)
+    LOGO_path = ("weeEbReaderLogo.png")
+    screen.fill(BG_COLOR)
+    LOGO = pygame.image.load(LOGO_path)
+    width = LOGO.get_width()
+    height = LOGO.get_height
+    x = (screen_width- width) // 2
+    y = 0
+    screen.blit(LOGO, (x,y))
+    pygame.display.update()
     time.sleep(1.5)
+
+show_splash_screen()
 
 
 
@@ -175,7 +167,6 @@ def select_book():
     filename = book.file_name
     doc = fitz.open(filename)
     current_mode = "reading"
-    display_pdf_page()
     needs_redraw = True
 
 def menu_up():
@@ -191,13 +182,15 @@ def menu_down():
     
 
 
+
 try:
     forward_button.when_activated = page_forward
     back_button.when_activated = page_back
     up_button.when_activated = menu_up
     down_button.when_activated = menu_down
     select_button.when_activated = select_book
-    print("All Bttons Configured")
+    menu_button.when_activated = to_menu
+    print("All Buttons Configured")
 except Exception as e:
     print(f"Error: Button setup failed {e}")
 
@@ -243,10 +236,3 @@ while running:
 
 
 pygame.quit()
-                
-
-
-
-
-
-
