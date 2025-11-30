@@ -61,7 +61,7 @@ BG_COLOR = 255
 
 def update_eink(image, full_refresh=False):
     if image.mode != 'L':
-        iamge = image.convert('L')
+        image = image.convert('L')
 
     if image.size != (screen_width, screen_height):
         image = image.resize((screen_width,screen_height), Image.LANCZOS)
