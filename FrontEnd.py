@@ -39,9 +39,9 @@ class LIGHT_NOVEL:
         self.current_page = current_page
 
 
-MTV1 = LIGHT_NOVEL("weeEbReader/Mushoku Tensei - Jobless Reincarnation Volume-1.pdf", "Mushoku Tensei Volume 1", 0)
-MTV2 = LIGHT_NOVEL("weeEbReader/Mushoku Tensei - Jobless Reincarnation Volume-2.pdf", "Mushoku Tensei Volume 2", 0)
-MTV3 = LIGHT_NOVEL("weeEbReader/Mushoku Tensei - Jobless Reincarnation Volume-3.pdf", "Mushoku Tensei Volume 3", 0)
+MTV1 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-1.pdf", "Mushoku Tensei Volume 1", 0)
+MTV2 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-2.pdf", "Mushoku Tensei Volume 2", 0)
+MTV3 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-3.pdf", "Mushoku Tensei Volume 3", 0)
 
 light_novel_list = [MTV1, MTV2, MTV3]
 
@@ -65,7 +65,7 @@ needs_redraw = True
 
 
 def show_splash_screen():
-    LOGO_path = ("weeEbReader/weeEbReaderLogo.png")
+    LOGO_path = ("weeEbReaderLogo.png")
     screen.fill(BG_COLOR)
     LOGO = pygame.image.load(LOGO_path)
     width = LOGO.get_width()
