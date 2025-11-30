@@ -85,10 +85,9 @@ def draw_menu():
     draw = ImageDraw.Draw(img)
    
     try:
-        book_title_font = ImageFont.truetype("DejaVu Sans", size=35)
+        book_title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size=35)
     except:
-        book_title_font = ImageFont.truetype("C:/Windows/Fonts/framd", size=35) 
-
+        book_title_font = ImageFont.load_default()
     y_pos = 200
     x_pos = 275
     for i, book in enumerate(light_novel_list):
