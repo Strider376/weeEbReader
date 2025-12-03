@@ -72,7 +72,7 @@ def show_splash_screen():
     img = Image.open("weeEbReaderLogo.png").convert('L')
     y = 0
     x = (screen_width - img.width) // 2
-    display.frame_buf.paste(img, )
+    display.frame_buf.paste(img, (x,y))
     
    
     time.sleep(1.5)
