@@ -7,7 +7,7 @@ from pathlib import Path
 from gpiozero import Button
 import time
 
-display = AutoEPDDisplay(vcom=-1.40, rotate='CCW')
+display = AutoEPDDisplay(vcom=-1.40, rotate='CW')
 
 screen_width = display.width
 screen_height = display.height
@@ -72,7 +72,7 @@ def show_splash_screen():
     img = Image.open("/home/noah/Documents/weeEbReader/weeEbReaderLogo.png").convert('L')
     img = img.resize((1000,1000), Image.LANCZOS)
     y = (screen_height) // 2
-    x = (screen_width - img.width) 
+    x = (screen_width - img.width) // 2
     print(f"Pasted X location: {x}")
     display.frame_buf.paste(img, (x,y))
     display.draw_full(constants.DisplayModes.GC16)
