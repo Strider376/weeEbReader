@@ -5,33 +5,33 @@ import fitz
 from pathlib import Path
 from gpiozero import Button
 import time
-import threading
+
 
 class EinkReader:
     def __init__(self, vcom=-1.40):
-        # Display initialization
+       
         self.display = AutoEPDDisplay(vcom=vcom, rotate='CW')
         self.screen_width = self.display.width
         self.screen_height = self.display.height
         
-        # State management
+        
         self.current_mode = "menu"
         self.selected_novel = 0
         self.doc = None
         self.running = True
         
-        # Flags for thread-safe updates
+       
         self.needs_menu_redraw = True
         self.needs_page_redraw = False
         
-        # Books library
+        
         self.library = BookLibrary()
         
-        # Button setup
+       
         self._setup_buttons()
         
     def _setup_buttons(self):
-        """Initialize GPIO buttons with callbacks"""
+        
         try:
             self.forward_button = Button(27)
             self.back_button = Button(17)
@@ -40,7 +40,7 @@ class EinkReader:
             self.down_button = Button(24)
             self.menu_button = Button(25)
             
-            # Assign callbacks
+            
             self.forward_button.when_activated = self._on_forward
             self.back_button.when_activated = self._on_back
             self.up_button.when_activated = self._on_up
@@ -52,7 +52,7 @@ class EinkReader:
         except Exception as e:
             print(f"Button setup failed: {e}")
     
-    # Button callbacks - these run in GPIO threads
+    
     def _on_forward(self):
         if self.current_mode == "reading":
             self.needs_page_redraw = True
@@ -85,7 +85,7 @@ class EinkReader:
             self.needs_menu_redraw = True
     
     def show_splash(self):
-        """Display startup logo - use GC16 for quality"""
+        
         self.display.clear()
         
         logo_path = Path(__file__).parent / "weeEbReaderLogo.png"
@@ -101,7 +101,7 @@ class EinkReader:
         time.sleep(2)
     
     def draw_menu(self):
-        """Draw menu screen - use DU mode for fast navigation"""
+       
         img = Image.new('L', (self.screen_width, self.screen_height), 255)
         draw = ImageDraw.Draw(img)
         
@@ -115,17 +115,17 @@ class EinkReader:
         
         y_pos = 200
         for i, book in enumerate(self.library.books):
-            # Highlight selected book with gray fill
+            
             fill = 200 if i == self.selected_novel else 255
             
             draw.rectangle(
-                [(50, y_pos), (self.screen_width - 50, y_pos + 100)],
+                [(50, y_pos), (self.screen_width - 50, y_pos + 400)],
                 fill=fill,
                 outline=0,
                 width=3
             )
             
-            # Center text in rectangle
+           
             text_x = (self.screen_width - 100) // 2 - 100
             draw.text(
                 (text_x, y_pos + 30),
@@ -136,27 +136,27 @@ class EinkReader:
             
             y_pos += 150
         
-        # Update display - DU mode for fast menu navigation
+        
         self.display.frame_buf.paste(img, (0, 0))
         self.display.draw_partial(constants.DisplayModes.DU)
     
     def draw_page(self):
-        """Render current PDF page - use GC16 for text quality"""
+        
         book = self.library.books[self.selected_novel]
         page_num = book.current_page
         
         if not (0 <= page_num < self.doc.page_count):
             return
         
-        # Render PDF page
+       
         page = self.doc[page_num]
         pix = page.get_pixmap()
         
-        # Convert to PIL Image and grayscale
+       
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
         img = img.convert('L')
         
-        # Scale to fit screen
+       
         width_scale = self.screen_width / pix.width
         height_scale = self.screen_height / pix.height
         scale = min(width_scale, height_scale)
@@ -165,15 +165,15 @@ class EinkReader:
         new_height = int(pix.height * scale)
         img = img.resize((new_width, new_height), Image.LANCZOS)
         
-        # Center on screen
+        
         x = (self.screen_width - new_width) // 2
         y = (self.screen_height - new_height) // 2
         
-        # Clear frame buffer and paste image
+        
         self.display.frame_buf.paste(255, (0, 0, self.screen_width, self.screen_height))
         self.display.frame_buf.paste(img, (x, y))
         
-        # GC16 mode for high-quality text rendering
+       
         self.display.draw_full(constants.DisplayModes.GC16)
     
     def run(self):
@@ -189,11 +189,10 @@ class EinkReader:
                 self.draw_page()
                 self.needs_page_redraw = False
             
-            time.sleep(0.05)  # Small sleep to prevent CPU spinning
+            time.sleep(0.05)
 
 
 class BookLibrary:
-    """Manages the collection of books"""
     def __init__(self):
         self.books = [
             LightNovel(
@@ -215,7 +214,6 @@ class BookLibrary:
 
 
 class LightNovel:
-    """Represents a single book with its state"""
     def __init__(self, file_name: str, display_name: str, current_page: int):
         self.file_name = file_name
         self.display_name = display_name
