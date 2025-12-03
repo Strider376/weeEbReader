@@ -71,13 +71,13 @@ def show_splash_screen():
     display.clear()
     img = Image.open("/home/noah/Documents/weeEbReader/weeEbReaderLogo.png").convert('L')
     img = img.resize((1000,1000), Image.LANCZOS)
-    y = (screen_height - img.height) // 2
+    y = (screen_height) // 2
     x = (screen_width - img.width) // 2
     display.frame_buf.paste(img, (x,y))
     display.draw_full(constants.DisplayModes.GC16)
     
    
-    time.sleep(1.5)
+    time.sleep(5)
 
 show_splash_screen()
 display.clear()
