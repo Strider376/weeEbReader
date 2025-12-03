@@ -69,7 +69,7 @@ def show_splash_screen():
     screen.fill(BG_COLOR)
     LOGO = pygame.image.load(LOGO_path)
     width = LOGO.get_width()
-    height = LOGO.get_height
+    height = LOGO.get_height()
     x = (screen_width- width) // 2
     y = 0
     screen.blit(LOGO, (x,y))
