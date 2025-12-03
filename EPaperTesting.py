@@ -69,9 +69,10 @@ needs_redraw = True
 def show_splash_screen():
     display.clear()
     img = Image.open("/home/noah/Documents/weeEbReader/weeEbReaderLogo.png").convert('L')
-    img = img.resize((1000,1000), Image.LANCZOS)
+    img = img.resize((800,800), Image.LANCZOS)
     y = (screen_height) // 2
-    x = (img.width - screen_width) // 2
+    x = (screen_width - img.width) // 2
+    print(f"Location ({x} , {y})")
     print(f"Pasted X location: {x}")
     display.frame_buf.paste(img, (x,y))
     display.draw_full(constants.DisplayModes.GC16)
