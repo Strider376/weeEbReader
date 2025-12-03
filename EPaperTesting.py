@@ -9,9 +9,8 @@ import time
 
 display = AutoEPDDisplay(vcom=-1.40, rotate='CCW')
 
-print(f"display.width: {display.width}")
-print(f"Display height: {display.height}")
-display.clear()
+screen_width = display.width
+screen_height = display.height
 
 try:
     forward_button = Button(27)
@@ -71,6 +70,8 @@ needs_redraw = True
 def show_splash_screen():
     
     img = Image.open("weeEbReaderLogo.png").convert('L')
+    y = 0
+    x = (screen_width - img.width) // 2
     display.frame_buf.paste(img, )
     
    
