@@ -32,8 +32,7 @@ doc = None
 
 dev_scale = .5
 running = True
-screen_height = int(1872 * dev_scale)
-screen_width = int(1404 * dev_scale)
+
 
 
 class LIGHT_NOVEL:
