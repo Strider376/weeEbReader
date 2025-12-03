@@ -81,4 +81,3 @@ def show_splash_screen():
     time.sleep(5)
 
 show_splash_screen()
-display.clear()
