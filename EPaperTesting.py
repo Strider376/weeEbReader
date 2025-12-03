@@ -70,8 +70,8 @@ needs_redraw = True
 def show_splash_screen():
     display.clear()
     img = Image.open("/home/noah/Documents/weeEbReader/weeEbReaderLogo.png").convert('L')
-    print(f"Image Size: {img.size}")
-    y = 0
+    img.resize(1000,1000, Image.LANCZOS)
+    y = (screen_height - img.height) // 2
     x = (screen_width - img.width) // 2
     display.frame_buf.paste(img, (x,y))
     display.draw_full(constants.DisplayModes.GC16)
