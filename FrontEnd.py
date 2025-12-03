@@ -1,237 +1,227 @@
-import pygame
-import fitz
-import sys
-from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+from IT8951 import constants
+from IT8951.display import AutoEPDDisplay
+import fitz
+from pathlib import Path
 from gpiozero import Button
 import time
+import threading
+
+class EinkReader:
+    def __init__(self, vcom=-1.40):
+        # Display initialization
+        self.display = AutoEPDDisplay(vcom=vcom, rotate='CW')
+        self.screen_width = self.display.width
+        self.screen_height = self.display.height
+        
+        # State management
+        self.current_mode = "menu"
+        self.selected_novel = 0
+        self.doc = None
+        self.running = True
+        
+        # Flags for thread-safe updates
+        self.needs_menu_redraw = True
+        self.needs_page_redraw = False
+        
+        # Books library
+        self.library = BookLibrary()
+        
+        # Button setup
+        self._setup_buttons()
+        
+    def _setup_buttons(self):
+        """Initialize GPIO buttons with callbacks"""
+        try:
+            self.forward_button = Button(27)
+            self.back_button = Button(17)
+            self.select_button = Button(22)
+            self.up_button = Button(23)
+            self.down_button = Button(24)
+            self.menu_button = Button(25)
+            
+            # Assign callbacks
+            self.forward_button.when_activated = self._on_forward
+            self.back_button.when_activated = self._on_back
+            self.up_button.when_activated = self._on_up
+            self.down_button.when_activated = self._on_down
+            self.select_button.when_activated = self._on_select
+            self.menu_button.when_activated = self._on_menu
+            
+            print("All buttons configured")
+        except Exception as e:
+            print(f"Button setup failed: {e}")
+    
+    # Button callbacks - these run in GPIO threads
+    def _on_forward(self):
+        if self.current_mode == "reading":
+            self.needs_page_redraw = True
+            
+    def _on_back(self):
+        if self.current_mode == "reading":
+            self.needs_page_redraw = True
+            
+    def _on_up(self):
+        if self.current_mode == "menu":
+            self.selected_novel = max(self.selected_novel - 1, 0)
+            self.needs_menu_redraw = True
+            
+    def _on_down(self):
+        if self.current_mode == "menu":
+            max_index = len(self.library.books) - 1
+            self.selected_novel = min(self.selected_novel + 1, max_index)
+            self.needs_menu_redraw = True
+            
+    def _on_select(self):
+        if self.current_mode == "menu":
+            book = self.library.books[self.selected_novel]
+            self.doc = fitz.open(book.file_name)
+            self.current_mode = "reading"
+            self.needs_page_redraw = True
+            
+    def _on_menu(self):
+        if self.current_mode == "reading":
+            self.current_mode = "menu"
+            self.needs_menu_redraw = True
+    
+    def show_splash(self):
+        """Display startup logo - use GC16 for quality"""
+        self.display.clear()
+        
+        logo_path = Path(__file__).parent / "weeEbReaderLogo.png"
+        img = Image.open(logo_path).convert('L')
+        img = img.resize((1200, 1200), Image.LANCZOS)
+        
+        x = (self.screen_width - img.width) // 2
+        y = (self.screen_height - img.height) // 2
+        
+        self.display.frame_buf.paste(img, (x, y))
+        self.display.draw_full(constants.DisplayModes.GC16)
+        
+        time.sleep(2)
+    
+    def draw_menu(self):
+        """Draw menu screen - use DU mode for fast navigation"""
+        img = Image.new('L', (self.screen_width, self.screen_height), 255)
+        draw = ImageDraw.Draw(img)
+        
+        try:
+            font = ImageFont.truetype(
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 
+                size=35
+            )
+        except:
+            font = ImageFont.load_default()
+        
+        y_pos = 200
+        for i, book in enumerate(self.library.books):
+            # Highlight selected book with gray fill
+            fill = 200 if i == self.selected_novel else 255
+            
+            draw.rectangle(
+                [(50, y_pos), (self.screen_width - 50, y_pos + 100)],
+                fill=fill,
+                outline=0,
+                width=3
+            )
+            
+            # Center text in rectangle
+            text_x = (self.screen_width - 100) // 2 - 100
+            draw.text(
+                (text_x, y_pos + 30),
+                book.display_name,
+                fill=0,
+                font=font
+            )
+            
+            y_pos += 150
+        
+        # Update display - DU mode for fast menu navigation
+        self.display.frame_buf.paste(img, (0, 0))
+        self.display.draw_partial(constants.DisplayModes.DU)
+    
+    def draw_page(self):
+        """Render current PDF page - use GC16 for text quality"""
+        book = self.library.books[self.selected_novel]
+        page_num = book.current_page
+        
+        if not (0 <= page_num < self.doc.page_count):
+            return
+        
+        # Render PDF page
+        page = self.doc[page_num]
+        pix = page.get_pixmap()
+        
+        # Convert to PIL Image and grayscale
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        img = img.convert('L')
+        
+        # Scale to fit screen
+        width_scale = self.screen_width / pix.width
+        height_scale = self.screen_height / pix.height
+        scale = min(width_scale, height_scale)
+        
+        new_width = int(pix.width * scale)
+        new_height = int(pix.height * scale)
+        img = img.resize((new_width, new_height), Image.LANCZOS)
+        
+        # Center on screen
+        x = (self.screen_width - new_width) // 2
+        y = (self.screen_height - new_height) // 2
+        
+        # Clear frame buffer and paste image
+        self.display.frame_buf.paste(255, (0, 0, self.screen_width, self.screen_height))
+        self.display.frame_buf.paste(img, (x, y))
+        
+        # GC16 mode for high-quality text rendering
+        self.display.draw_full(constants.DisplayModes.GC16)
+    
+    def run(self):
+        """Main event loop"""
+        self.show_splash()
+        
+        while self.running:
+            if self.current_mode == "menu" and self.needs_menu_redraw:
+                self.draw_menu()
+                self.needs_menu_redraw = False
+                
+            elif self.current_mode == "reading" and self.needs_page_redraw:
+                self.draw_page()
+                self.needs_page_redraw = False
+            
+            time.sleep(0.05)  # Small sleep to prevent CPU spinning
 
 
-
-try:
-    forward_button = Button(27)
-    back_button = Button(17)
-    select_button = Button(22)
-    up_button = Button(23)
-    down_button = Button(24)
-    menu_button = Button(25)
-except:
-    pass
-
-pygame.init()
-
-current_mode = "menu"
-menu_redraw = True
-
-selected_novel = 0
-doc = None
-
-dev_scale = .5
-running = True
-screen_height = int(1872 * dev_scale)
-screen_width = int(1404 * dev_scale)
+class BookLibrary:
+    """Manages the collection of books"""
+    def __init__(self):
+        self.books = [
+            LightNovel(
+                "Mushoku Tensei - Jobless Reincarnation Volume-1.pdf",
+                "Mushoku Tensei Volume 1",
+                0
+            ),
+            LightNovel(
+                "Mushoku Tensei - Jobless Reincarnation Volume-2.pdf",
+                "Mushoku Tensei Volume 2",
+                0
+            ),
+            LightNovel(
+                "Mushoku Tensei - Jobless Reincarnation Volume-3.pdf",
+                "Mushoku Tensei Volume 3",
+                0
+            ),
+        ]
 
 
-class LIGHT_NOVEL:
+class LightNovel:
+    """Represents a single book with its state"""
     def __init__(self, file_name: str, display_name: str, current_page: int):
         self.file_name = file_name
         self.display_name = display_name
         self.current_page = current_page
 
 
-MTV1 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-1.pdf", "Mushoku Tensei Volume 1", 0)
-MTV2 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-2.pdf", "Mushoku Tensei Volume 2", 0)
-MTV3 = LIGHT_NOVEL("Mushoku Tensei - Jobless Reincarnation Volume-3.pdf", "Mushoku Tensei Volume 3", 0)
-
-light_novel_list = [MTV1, MTV2, MTV3]
-
-
-BG_COLOR = (255,255,255)
-
-
-
-
-img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
-screen = pygame.display.set_mode((screen_width, screen_height))
-clock = pygame.time.Clock()
-
-screen.fill(BG_COLOR)
-
-
-running = True
-needs_redraw = True
-
-
-
-
-def show_splash_screen():
-    LOGO_path = ("weeEbReaderLogo.png")
-    screen.fill(BG_COLOR)
-    LOGO = pygame.image.load(LOGO_path)
-    width = LOGO.get_width()
-    height = LOGO.get_height()
-    x = (screen_width- width) // 2
-    y = 0
-    screen.blit(LOGO, (x,y))
-    pygame.display.update()
-    time.sleep(1.5)
-
-show_splash_screen()
-
-
-
-def draw_menu():
-    img = Image.new("RGB", (screen_width, screen_height), BG_COLOR)
-    draw = ImageDraw.Draw(img)
-   
-    try:
-        book_title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", size=35)
-    except:
-        book_title_font = ImageFont.load_default()
-    y_pos = 200
-    x_pos = 275
-    for i, book in enumerate(light_novel_list):
-
-        if i == selected_novel:
-            fill = (100,100,255)
-        else:
-            fill = (255,255,255)
-
-        draw.rectangle([(50, y_pos), (650, y_pos+100)], fill=fill,outline="black", width=3)
-        current_book = (book.display_name)
-        draw.text((x_pos-120,y_pos+30), current_book, fill = "Black", font=book_title_font)
-        y_pos += 150
-
-    pixel_data = img.tobytes()
-    surface = pygame.image.fromstring(pixel_data, img.size, img.mode)
-
-    screen.blit(surface, (0,0))
-    pygame.display.update()
-
-
-
-def display_pdf_page():
-    
-
-    screen.fill(BG_COLOR)
-    
-    current_book = light_novel_list[selected_novel]
-    page_num = current_book.current_page  
-    
-    if 0 <= page_num < doc.page_count:
-        page = doc[page_num]  
-        pix = page.get_pixmap()
-
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-        width_scale = screen_width / pix.width
-        height_scale = screen_height / pix.height
-        scale = min(width_scale, height_scale)
-        new_width = int(pix.width*scale)
-        new_height = int(pix.height*scale)
-        img = img.resize((new_width,new_height), resample=Image.LANCZOS)
-
-        pixel_data = img.tobytes()
-        image_mode = img.mode
-        surface = pygame.image.fromstring(pixel_data, img.size, image_mode)
-        
-        x = (screen_width-new_width) // 2
-        y = (screen_height-new_height) // 2
-
-        screen.blit(surface, (x,y))
-        pygame.display.update()
-       
-def to_menu():
-    global menu_redraw, current_mode
-    current_mode = "menu"
-    menu_redraw = True
-
-def page_forward():
-    global needs_redraw
-    current_book = light_novel_list[selected_novel]
-    current_book.current_page = min(current_book.current_page + 1, doc.page_count -1)
-    needs_redraw = True
-    print(f"Forward to Page {current_book.current_page}")
-
-def page_back():
-    global needs_redraw
-    current_book = light_novel_list[selected_novel]
-    current_book.current_page = max(current_book.current_page - 1, 0) 
-    needs_redraw = True
-    print(f"Back to page {current_book.current_page}")
-
-
-def select_book():
-    global doc, current_mode, needs_redraw
-    book = light_novel_list[selected_novel]
-    filename = book.file_name
-    doc = fitz.open(filename)
-    current_mode = "reading"
-    needs_redraw = True
-
-def menu_up():
-    global menu_redraw, selected_novel
-    selected_novel = max(selected_novel - 1, 0)
-    menu_redraw = True
-    
-
-def menu_down():
-    global menu_redraw, selected_novel
-    selected_novel = min(selected_novel + 1, len(light_novel_list) - 1)
-    menu_redraw = True
-    
-
-
-
-try:
-    forward_button.when_activated = page_forward
-    back_button.when_activated = page_back
-    up_button.when_activated = menu_up
-    down_button.when_activated = menu_down
-    select_button.when_activated = select_book
-    menu_button.when_activated = to_menu
-    print("All Buttons Configured")
-except Exception as e:
-    print(f"Error: Button setup failed {e}")
-
-
-
-
-while running:
-    
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN and current_mode == "reading":
-            if event.key == pygame.K_UP:
-                page_forward()
-            if event.key == pygame.K_DOWN:
-                page_back()
-            if event.key == pygame.K_ESCAPE:
-                to_menu()
-        if event.type == pygame.KEYDOWN and current_mode == "menu":
-            if event.key == pygame.K_SPACE:
-                running = False
-            if event.key == pygame.K_RETURN:
-                select_book()
-            if event.key == pygame.K_UP:
-                menu_up()
-            if event.key == pygame.K_DOWN:
-                menu_down()
-                
-    if current_mode == "menu" and menu_redraw:
-        draw_menu()
-        menu_redraw = False
-
-    elif current_mode == "reading" and needs_redraw:
-        display_pdf_page()
-        needs_redraw = False
-
-    clock.tick(30)
-   
-       
-
-
- 
-
-
-pygame.quit()
+if __name__ == "__main__":
+    reader = EinkReader(vcom=-1.40)
+    reader.run()
