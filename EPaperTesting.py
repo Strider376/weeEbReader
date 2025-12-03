@@ -73,6 +73,7 @@ def show_splash_screen():
     y = 0
     x = (screen_width - img.width) // 2
     display.frame_buf.paste(img, (x,y))
+    display.draw_full(constants.DisplayModes.GC16)
     
    
     time.sleep(1.5)
