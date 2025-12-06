@@ -171,3 +171,4 @@ except Exception as e:
 
 
 
+display_pdf_page()

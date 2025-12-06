@@ -143,7 +143,7 @@ def display_pdf_page():
 def to_menu():
     global menu_redraw, current_mode
     current_mode = "menu"
-    menu_redraw = True
+    draw_menu
 
 def page_forward():
     global needs_redraw
