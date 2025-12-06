@@ -95,7 +95,7 @@ def display_pdf_page():
 
     if 0 <= page_num < doc.page_count:
         page = doc[page_num]  
-        pix = page.get_pixmap(colorspace=fitz.csGRAY)
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) 
         img = Image.frombytes('L', [pix.width, pix.height], pix.samples)
         width_scale = screen_width / pix.width
         height_scale = screen_height / pix.height
