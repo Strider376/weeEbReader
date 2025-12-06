@@ -105,3 +105,5 @@ def display_pdf_page():
         canvas.paste(img, (x,y))
         display.frame_buf.paste(0,0, canvas)
         display.draw_full(constants.DisplayModes.GC16)
+
+display_pdf_page()
