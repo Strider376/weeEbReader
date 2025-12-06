@@ -80,7 +80,7 @@ def show_splash_screen():
    
     time.sleep(5)
 
-show_splash_screen()
+
 
 
 def display_pdf_page():
@@ -95,7 +95,7 @@ def display_pdf_page():
 
     if 0 <= page_num < doc.page_count:
         page = doc[page_num]  
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) 
+        pix = page.get_pixmap(colorspace=fitz.csGRAY)
         img = Image.frombytes('L', [pix.width, pix.height], pix.samples)
         width_scale = screen_width / pix.width
         height_scale = screen_height / pix.height
@@ -111,4 +111,63 @@ def display_pdf_page():
         display.frame_buf.paste(canvas)
         display.draw_full(constants.DisplayModes.GC16)
 
-display_pdf_page()
+
+
+def to_menu():
+    global menu_redraw, current_mode
+    current_mode = "menu"
+    menu_redraw = True
+
+def page_forward():
+    global needs_redraw
+    current_book = light_novel_list[selected_novel]
+    current_book.current_page = min(current_book.current_page + 1, doc.page_count -1)
+    needs_redraw = True
+    print(f"Forward to Page {current_book.current_page}")
+
+def page_back():
+    global needs_redraw
+    current_book = light_novel_list[selected_novel]
+    current_book.current_page = max(current_book.current_page - 1, 0) 
+    needs_redraw = True
+    print(f"Back to page {current_book.current_page}")
+
+
+def select_book():
+    global doc, current_mode, needs_redraw
+    book = light_novel_list[selected_novel]
+    filename = book.file_name
+    doc = fitz.open(filename)
+    current_mode = "reading"
+    needs_redraw = True
+
+def menu_up():
+    global menu_redraw, selected_novel
+    selected_novel = max(selected_novel - 1, 0)
+    menu_redraw = True
+    
+
+def menu_down():
+    global menu_redraw, selected_novel
+    selected_novel = min(selected_novel + 1, len(light_novel_list) - 1)
+    menu_redraw = True
+    
+
+
+
+try:
+    forward_button.when_activated = page_forward
+    back_button.when_activated = page_back
+    up_button.when_activated = menu_up
+    down_button.when_activated = menu_down
+    select_button.when_activated = select_book
+    menu_button.when_activated = to_menu
+    print("All Buttons Configured")
+except Exception as e:
+    print(f"Error: Button setup failed {e}")
+
+
+
+
+
+
