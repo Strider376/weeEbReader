@@ -81,3 +81,27 @@ def show_splash_screen():
     time.sleep(5)
 
 show_splash_screen()
+
+
+def display_pdf_page():
+    
+
+    
+    current_book = light_novel_list[selected_novel]
+    page_num = current_book.current_page  
+    filename = current_book.file_name
+    doc = fitz.open(filename)
+
+
+    if 0 <= page_num < doc.page_count:
+        page = doc[page_num]  
+        pix = page.get_pixmap(colorspace=fitz.csGRAY)
+        img = Image.frombytes('L', [pix.width, pix.height], pix.samples)
+      
+        canvas = Image.new('L', (screen_width, screen_height), 255)
+        x = (screen_width - img.width) // 2
+        y = (screen_height - img.height) // 2
+
+        canvas.paste(img, (x,y))
+        display.frame_buf.paste(0,0, canvas)
+        display.draw_full(constants.DisplayModes.GC16)
