@@ -97,7 +97,12 @@ def display_pdf_page():
         page = doc[page_num]  
         pix = page.get_pixmap(colorspace=fitz.csGRAY)
         img = Image.frombytes('L', [pix.width, pix.height], pix.samples)
-      
+        width_scale = screen_width / pix.width
+        height_scale = screen_height / pix.height
+        scale = min(width_scale, height_scale)
+        new_width = int(pix.width * scale)
+        new_height = int(pix.height * scale)
+        img = img.resize((new_width, new_height), resample=Image.LANCZOS)
         canvas = Image.new('L', (screen_width, screen_height), 255)
         x = (screen_width - img.width) // 2
         y = (screen_height - img.height) // 2
