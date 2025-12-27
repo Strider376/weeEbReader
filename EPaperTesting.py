@@ -178,5 +178,6 @@ def main():
 
     display_pdf_page()
 
+while True:
 
-main()
+    main()
