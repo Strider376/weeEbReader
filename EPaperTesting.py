@@ -7,18 +7,18 @@ from pathlib import Path
 from gpiozero import Button
 import time
 
-display = AutoEPDDisplay(vcom=-1.40, rotate='CW')
+display = AutoEPDDisplay(vcom=-1.46, rotate='CW')
 
 screen_width = display.width
 screen_height = display.height
 
 try:
-    forward_button = Button(27)
-    back_button = Button(17)
+    forward_button = Button(5)
+    back_button = Button(6)
     select_button = Button(22)
-    up_button = Button(23)
-    down_button = Button(24)
-    menu_button = Button(25)
+    up_button = Button(27)
+    down_button = Button(3)
+    menu_button = Button(4)
 except:
     pass
 
@@ -171,4 +171,9 @@ except Exception as e:
 
 
 
-display_pdf_page()
+def main():
+    current_mode = "menu"
+
+    show_splash_screen()
+
+    display_pdf_page()
