@@ -7,7 +7,7 @@ from pathlib import Path
 from gpiozero import Button
 import time
 
-display = AutoEPDDisplay(vcom=-1.46, rotate='CW')
+display = AutoEPDDisplay(vcom=-1.40, rotate='CW')
 
 screen_width = display.width
 screen_height = display.height
@@ -177,3 +177,6 @@ def main():
     show_splash_screen()
 
     display_pdf_page()
+
+
+main()
